@@ -1,11 +1,9 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
+import { useState } from 'react';
 import Image from 'next/image';
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null);
-  const { theme } = useTheme();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -20,7 +18,7 @@ export default function Home() {
       {/* Glassmorphism Card */}
       <div className="bg-glass backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-peachy-pink/30 max-w-md w-full">
         <h1 className="text-3xl font-bold text-center text-white mb-4 font-poppins">
-          SnapSplit
+          Carel-Sim
         </h1>
         <p className="text-center text-gray-300 mb-6 font-inter">
           Snap a bill, split the cost. Easy vibes.
