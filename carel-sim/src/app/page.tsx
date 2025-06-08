@@ -8,26 +8,37 @@ export default function Home() {
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
+  const [items, setItems] = useState<{ name: string; price: number }[]>([]);
+  const [extractedTotal, setExtractedTotal] = useState<number | null>(null);
+  const [people, setPeople] = useState<string[]>([]);
+  const [newPerson, setNewPerson] = useState("");
+  const [selectedItems, setSelectedItems] = useState<Record<string, number[]>>({});
+  const [currentPerson, setCurrentPerson] = useState<string | null>(null);
+  const [calculatedTotals, setCalculatedTotals] = useState<Record<string, number> | null>(null);
 
-  // Handle image upload: store the file and show a preview
+  // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;
-
     setFile(uploadedFile);
     const objectUrl = URL.createObjectURL(uploadedFile);
     setImage(objectUrl);
-    setOcrText(null); // Reset OCR text for new upload
-    setIsProcessing(false);
+    setOcrText(null);
+    setItems([]);
+    setExtractedTotal(null);
+    setCalculatedTotals(null);
   };
 
-  // Process the bill: run OCR on the uploaded file
+  // Process the bill with OCR and extract items and total
   const handleProcessBill = async () => {
     if (!file) return;
     setIsProcessing(true);
     try {
       const { data: { text } } = await Tesseract.recognize(file, 'eng');
       setOcrText(text);
+      const { items: parsedItems, total } = parseBillText(text);
+      setItems(parsedItems);
+      setExtractedTotal(total);
     } catch (error) {
       console.error("OCR failed:", error);
       setOcrText("Failed to recognize text.");
@@ -36,12 +47,79 @@ export default function Home() {
     }
   };
 
-  // Remove the image and reset all states
-  const handleRemoveImage = () => {
-    setFile(null);
-    setImage(null);
-    setIsProcessing(false);
-    setOcrText(null);
+  // Parse OCR text to extract items and total amount
+  const parseBillText = (text: string) => {
+    const items = [];
+    let total = null;
+
+    // Extract items
+    const itemRegex = /(.+?)\s+\$(\d+\.\d{2})/g;
+    let match;
+    while ((match = itemRegex.exec(text)) !== null) {
+      items.push({ name: match[1].trim(), price: parseFloat(match[2]) });
+    }
+
+    // Extract total amount (looks for "Total" or "Subtotal")
+    const totalRegex = /(?:Total|Subtotal)\s+\$(\d+\.\d{2})/i;
+    const totalMatch = text.match(totalRegex);
+    if (totalMatch) {
+      total = parseFloat(totalMatch[1]);
+    }
+
+    return { items, total };
+  };
+
+  // Add a new person
+  const addPerson = () => {
+    if (newPerson && !people.includes(newPerson)) {
+      setPeople([...people, newPerson]);
+      setNewPerson("");
+    }
+  };
+
+  // Handle item selection for the current person
+  const handleItemSelection = (itemIndex: number, checked: boolean) => {
+    if (!currentPerson) return;
+    setSelectedItems(prev => {
+      const current = prev[currentPerson] || [];
+      if (checked) {
+        return { ...prev, [currentPerson]: [...current, itemIndex] };
+      } else {
+        return { ...prev, [currentPerson]: current.filter(i => i !== itemIndex) };
+      }
+    });
+  };
+
+  // Calculate totals using the extracted total
+  const calculateTotals = () => {
+    if (!extractedTotal || items.length === 0) return;
+
+    const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+    const taxAndTip = extractedTotal - subtotal;
+
+    const personTotals: Record<string, number> = {};
+
+    items.forEach((item, index) => {
+      const selectedPeople = people.filter(person => selectedItems[person]?.includes(index));
+      const numSelected = selectedPeople.length;
+      if (numSelected > 0) {
+        const share = item.price / numSelected;
+        selectedPeople.forEach(person => {
+          personTotals[person] = (personTotals[person] || 0) + share;
+        });
+      }
+    });
+
+    const totalSelectedSubtotal = Object.values(personTotals).reduce((sum, val) => sum + val, 0);
+
+    const finalTotals: Record<string, number> = {};
+    people.forEach(person => {
+      const personSubtotal = personTotals[person] || 0;
+      const shareOfTaxAndTip = totalSelectedSubtotal > 0 ? (personSubtotal / totalSelectedSubtotal) * taxAndTip : 0;
+      finalTotals[person] = personSubtotal + shareOfTaxAndTip;
+    });
+
+    setCalculatedTotals(finalTotals);
   };
 
   return (
@@ -59,91 +137,132 @@ export default function Home() {
         </p>
 
         {/* Upload Section */}
-        <div className="flex flex-col items-center">
-          {/* No image yet → "Snap Bill" button */}
-          {!image && (
-            <label
-              htmlFor="bill-upload"
-              className="w-full flex items-center justify-center bg-[#FF6F61] text-gray-900 text-lg font-semibold py-3 rounded-full cursor-pointer hover:scale-105 transform transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-[#FF6F61]/50"
-            >
-              Snap Bill
-              <input
-                id="bill-upload"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="sr-only"
-                onChange={handleImageUpload}
-                aria-label="Upload a photo of your bill"
-              />
-            </label>
-          )}
+        {!image && (
+          <label
+            htmlFor="bill-upload"
+            className="w-full flex items-center justify-center bg-[#FF6F61] text-gray-900 text-lg font-semibold py-3 rounded-full cursor-pointer hover:scale-105 transform transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-[#FF6F61]/50"
+          >
+            Snap Bill
+            <input
+              id="bill-upload"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={handleImageUpload}
+              aria-label="Upload a photo of your bill"
+            />
+          </label>
+        )}
 
-          {/* Image uploaded → show preview + controls */}
-          {image && (
-            <div className="w-full flex flex-col items-center space-y-4">
-              {/* Image preview */}
-              <div className="relative w-full h-64 rounded-lg overflow-hidden border border-white/30 shadow-md">
-                <Image
-                  src={image}
-                  alt="Preview of uploaded bill"
-                  fill
-                  className="object-cover animate-fade-in"
-                />
-                {isProcessing && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="loader ease-linear rounded-full border-4 border-t-4 border-white w-12 h-12"></span>
+        {/* Image Preview and Controls */}
+        {image && (
+          <div className="w-full flex flex-col items-center space-y-4">
+            <div className="relative w-full h-64 rounded-lg overflow-hidden border border-white/30 shadow-md">
+              <Image
+                src={image}
+                alt="Preview of uploaded bill"
+                fill
+                className="object-cover animate-fade-in"
+              />
+              {isProcessing && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="loader ease-linear rounded-full border-4 border-t-4 border-white w-12 h-12"></span>
+                </div>
+              )}
+            </div>
+
+            {!isProcessing && !ocrText && (
+              <button
+                onClick={handleProcessBill}
+                className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors duration-200"
+              >
+                Process Bill
+              </button>
+            )}
+
+            {/* Assignment UI */}
+            {items.length > 0 && (
+              <div className="mt-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Assign Items to People</h2>
+
+                {/* Display Extracted Total */}
+                {extractedTotal && (
+                  <p className="text-white mb-4">Extracted Total: ${extractedTotal.toFixed(2)}</p>
+                )}
+
+                {/* Add People */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    value={newPerson}
+                    onChange={(e) => setNewPerson(e.target.value)}
+                    placeholder="Enter person's name"
+                    className="p-2 rounded-lg w-full text-black"
+                  />
+                  <button
+                    onClick={addPerson}
+                    className="mt-2 w-full bg-blue-500 text-white py-2 rounded-full font-semibold hover:bg-blue-600"
+                  >
+                    Add Person
+                  </button>
+                </div>
+
+                {/* Select Current Person */}
+                {people.length > 0 && (
+                  <select
+                    value={currentPerson || ""}
+                    onChange={(e) => setCurrentPerson(e.target.value)}
+                    className="p-2 rounded-lg w-full text-black mb-4"
+                  >
+                    <option value="">Select a person</option>
+                    {people.map(person => (
+                      <option key={person} value={person}>
+                        {person}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Item Checkboxes for Current Person */}
+                {currentPerson && (
+                  <div className="space-y-2">
+                    {items.map((item, index) => (
+                      <label key={index} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems[currentPerson]?.includes(index) || false}
+                          onChange={(e) => handleItemSelection(index, e.target.checked)}
+                        />
+                        <span className="text-white">{item.name} - ${item.price.toFixed(2)}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Calculate Button */}
+                <button
+                  onClick={calculateTotals}
+                  className="mt-4 Dungeon w-full bg-purple-500 text-white py-2 rounded-full font-semibold hover:bg-purple-600"
+                >
+                  Calculate Totals
+                </button>
+
+                {/* Display Calculated Totals */}
+                {calculatedTotals && (
+                  <div className="mt-6 p-4 bg-white/10 rounded-lg text-white">
+                    <h2 className="text-xl font-bold mb-2">Totals:</h2>
+                    {Object.entries(calculatedTotals).map(([person, total]) => (
+                      <p key={person}>
+                        {person}: ${total.toFixed(2)}
+                      </p>
+                    ))}
                   </div>
                 )}
               </div>
-
-              {/* Process Bill button: shown only if not processing and no OCR text yet */}
-              {!isProcessing && !ocrText && (
-                <button
-                  onClick={handleProcessBill}
-                  className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors duration-200"
-                >
-                  Process Bill
-                </button>
-              )}
-
-              {/* Display OCR results if available */}
-              {ocrText && (
-                <div className="mt-4 p-4 bg-white/10 rounded-lg text-white">
-                  <h2 className="text-xl font-bold mb-2">Extracted Text:</h2>
-                  <p>{ocrText}</p>
-                </div>
-              )}
-
-              {/* Change and Remove buttons */}
-              <div className="flex space-x-3 w-full">
-                <label
-                  htmlFor="bill-upload"
-                  className="flex-1 bg-[#FDD835] text-gray-900 text-center py-2 rounded-full font-semibold cursor-pointer hover:bg-[#FBC02D] transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-[#FDD835]/50"
-                >
-                  Change Bill
-                  <input
-                    id="bill-upload"
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="sr-only"
-                    onChange={handleImageUpload}
-                    aria-label="Change photo of bill"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="flex-1 bg-[#E53935] text-white text-center py-2 rounded-full font-semibold hover:bg-[#D32F2F] transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-[#E53935]/50"
-                  aria-label="Remove uploaded bill"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
