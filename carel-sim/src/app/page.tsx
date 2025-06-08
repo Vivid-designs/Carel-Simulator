@@ -28,16 +28,16 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black to-gray-500 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-blue-300 flex flex-col items-center justify-center px-4 py-8">
       {/* ─── Glassmorphism Card ────────────────────────────────────────────── */}
       <div
-        className="relative bg-white/200 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-purple/200 max-w-md w-full"
+        className="relative bg-white/5 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-black max-w-md w-full"
         aria-live="polite"
       >
         <h1 className="text-4xl font-extrabold text-white text-center mb-2 tracking-wide">
           Carel Sim
         </h1>
-        <p className="text-center text-gray-300 mb-6 leading-relaxed">
+        <p className="text-center text-white mb-6 leading-relaxed">
           Snap a bill, split the cost—because life&apos;s too short for math drama.
         </p>
 
@@ -49,7 +49,7 @@ export default function Home() {
               htmlFor="bill-upload"
               className="w-full flex items-center justify-center bg-[#FF6F61] text-gray-900 text-lg font-semibold py-3 rounded-full cursor-pointer hover:scale-105 transform transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-[#FF6F61]/50"
             >
-              📸 Snap Bill
+              Snap Bill
               <input
                 id="bill-upload"
                 type="file"
@@ -110,7 +110,7 @@ export default function Home() {
       </div>
 
       {/* ─── Footer ──────────────────────────────────────────────────────── */}
-      <p className="mt-10 text-gray-400 text-sm">
+      <p className="mt-10 text-black text-sm">
         Powered by AI ✨ No login needed.
       </p>
     </div>
