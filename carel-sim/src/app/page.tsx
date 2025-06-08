@@ -55,7 +55,7 @@ export default function Home() {
           Carel Sim
         </h1>
         <p className="text-center text-white mb-6 leading-relaxed">
-          Snap a bill, split the cost—because life's too short for math drama.
+          Snap a bill, split the cost—because life&apos;s too short for math drama.
         </p>
 
         {/* Upload Section */}
