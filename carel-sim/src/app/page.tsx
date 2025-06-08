@@ -4,19 +4,26 @@ import Image from "next/image";
 import Tesseract from "tesseract.js";
 
 export default function Home() {
+  const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Handle image upload: store the file and show a preview
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = e.target.files?.[0];
+    if (!uploadedFile) return;
 
-    // Show preview immediately
-    const objectUrl = URL.createObjectURL(file);
+    setFile(uploadedFile);
+    const objectUrl = URL.createObjectURL(uploadedFile);
     setImage(objectUrl);
+    setOcrText(null); // Reset OCR text for new upload
+    setIsProcessing(false);
+  };
 
-    // Start OCR processing
+  // Process the bill: run OCR on the uploaded file
+  const handleProcessBill = async () => {
+    if (!file) return;
     setIsProcessing(true);
     try {
       const { data: { text } } = await Tesseract.recognize(file, 'eng');
@@ -29,7 +36,9 @@ export default function Home() {
     }
   };
 
+  // Remove the image and reset all states
   const handleRemoveImage = () => {
+    setFile(null);
     setImage(null);
     setIsProcessing(false);
     setOcrText(null);
@@ -37,7 +46,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-blue-300 flex flex-col items-center justify-center px-4 py-8">
-      {/* ─── Glassmorphism Card ────────────────────────────────────────────── */}
+      {/* Glassmorphism Card */}
       <div
         className="relative bg-white/5 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-black max-w-md w-full"
         aria-live="polite"
@@ -49,9 +58,9 @@ export default function Home() {
           Snap a bill, split the cost—because life's too short for math drama.
         </p>
 
-        {/* ─── Upload Section ──────────────────────────────────────────────── */}
+        {/* Upload Section */}
         <div className="flex flex-col items-center">
-          {/* No image yet → “Snap Bill” button */}
+          {/* No image yet → "Snap Bill" button */}
           {!image && (
             <label
               htmlFor="bill-upload"
@@ -70,9 +79,10 @@ export default function Home() {
             </label>
           )}
 
-          {/* Image is loaded → show preview + controls */}
+          {/* Image uploaded → show preview + controls */}
           {image && (
             <div className="w-full flex flex-col items-center space-y-4">
+              {/* Image preview */}
               <div className="relative w-full h-64 rounded-lg overflow-hidden border border-white/30 shadow-md">
                 <Image
                   src={image}
@@ -87,6 +97,25 @@ export default function Home() {
                 )}
               </div>
 
+              {/* Process Bill button: shown only if not processing and no OCR text yet */}
+              {!isProcessing && !ocrText && (
+                <button
+                  onClick={handleProcessBill}
+                  className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors duration-200"
+                >
+                  Process Bill
+                </button>
+              )}
+
+              {/* Display OCR results if available */}
+              {ocrText && (
+                <div className="mt-4 p-4 bg-white/10 rounded-lg text-white">
+                  <h2 className="text-xl font-bold mb-2">Extracted Text:</h2>
+                  <p>{ocrText}</p>
+                </div>
+              )}
+
+              {/* Change and Remove buttons */}
               <div className="flex space-x-3 w-full">
                 <label
                   htmlFor="bill-upload"
@@ -112,20 +141,12 @@ export default function Home() {
                   Remove
                 </button>
               </div>
-
-              {/* Display OCR results */}
-              {ocrText && (
-                <div className="mt-4 p-4 bg-white/10 rounded-lg text-white">
-                  <h2 className="text-xl font-bold mb-2">Extracted Text:</h2>
-                  <p>{ocrText}</p>
-                </div>
-              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* ─── Footer ──────────────────────────────────────────────────────── */}
+      {/* Footer */}
       <p className="mt-10 text-black text-sm">
         Powered by AI ✨ No login needed.
       </p>
