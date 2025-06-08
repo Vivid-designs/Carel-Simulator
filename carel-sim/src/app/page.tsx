@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import Tesseract from "tesseract.js";
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [ocrText, setOcrText] = useState<string | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -14,17 +16,23 @@ export default function Home() {
     const objectUrl = URL.createObjectURL(file);
     setImage(objectUrl);
 
-    // Simulate OCR kickoff (replace with Tesseract logic later)
+    // Start OCR processing
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      const { data: { text } } = await Tesseract.recognize(file, 'eng');
+      setOcrText(text);
+    } catch (error) {
+      console.error("OCR failed:", error);
+      setOcrText("Failed to recognize text.");
+    } finally {
       setIsProcessing(false);
-      // → Next: call Tesseract.recognize(file).then(...)
-    }, 1500);
+    }
   };
 
   const handleRemoveImage = () => {
     setImage(null);
     setIsProcessing(false);
+    setOcrText(null);
   };
 
   return (
@@ -38,7 +46,7 @@ export default function Home() {
           Carel Sim
         </h1>
         <p className="text-center text-white mb-6 leading-relaxed">
-          Snap a bill, split the cost—because life&apos;s too short for math drama.
+          Snap a bill, split the cost—because life's too short for math drama.
         </p>
 
         {/* ─── Upload Section ──────────────────────────────────────────────── */}
@@ -104,6 +112,14 @@ export default function Home() {
                   Remove
                 </button>
               </div>
+
+              {/* Display OCR results */}
+              {ocrText && (
+                <div className="mt-4 p-4 bg-white/10 rounded-lg text-white">
+                  <h2 className="text-xl font-bold mb-2">Extracted Text:</h2>
+                  <p>{ocrText}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
