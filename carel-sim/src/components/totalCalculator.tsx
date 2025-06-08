@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { DollarSign } from "lucide-react";
+import { DollarSign, RotateCcw } from "lucide-react";
 
 interface BillItem {
   name: string;
@@ -13,9 +13,15 @@ interface TotalCalculatorProps {
   items: BillItem[];
   selectedItems: { [key: number]: number };
   tipPercentage: number;
+  onReset?: () => void; // optional reset button
 }
 
-export function TotalCalculator({ items, selectedItems, tipPercentage }: TotalCalculatorProps) {
+export function TotalCalculator({
+  items,
+  selectedItems,
+  tipPercentage,
+  onReset,
+}: TotalCalculatorProps) {
   const { subtotal, tip, total } = useMemo(() => {
     const subtotal = Object.entries(selectedItems).reduce((sum, [index, quantity]) => {
       const itemIndex = Number(index);
@@ -31,21 +37,35 @@ export function TotalCalculator({ items, selectedItems, tipPercentage }: TotalCa
   }, [items, selectedItems, tipPercentage]);
 
   return (
-    <div className="w-full max-w-md bg-dark-surface rounded-lg shadow-lg p-4">
-      <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-        <DollarSign size={20} className="text-pastel-green" />
-        Your Share
-      </h2>
-      <div className="flex flex-col gap-2">
+    <div className="rounded-2xl bg-white/90 p-6 shadow-lg border-0">
+      <div className="flex items-center gap-3 mb-6">
+        <DollarSign size={32} className="text-pastel-blue" />
+        <div>
+          <h2 className="text-2xl font-semibold text-sunset">Your Share</h2>
+          <p className="text-sm text-text-secondary">Here’s what you owe</p>
+        </div>
+        {onReset && (
+          <button
+            type="button"
+            className="ml-auto text-text-secondary hover:text-sunset rounded-full p-2 transition"
+            onClick={onReset}
+            aria-label="Reset"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+      <div className="space-y-4">
         <div className="flex justify-between text-lg">
-          <span className="text-gray-300">Subtotal</span>
-          <span className="text-white">${subtotal.toFixed(2)}</span>
+          <span className="text-gray-400">Subtotal</span>
+          <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-lg">
-          <span className="text-gray-300">Tip ({tipPercentage}%)</span>
-          <span className="text-white">${tip.toFixed(2)}</span>
+          <span className="text-gray-400">Tip ({tipPercentage}%)</span>
+          <span className="font-medium text-gray-900">${tip.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between text-xl font-semibold mt-2 border-t border-gray-700 pt-2">
+        <div className="border-t border-gray-200 my-2" />
+        <div className="flex justify-between items-center text-xl font-bold">
           <span className="text-pastel-blue">Total</span>
           <span className="text-pastel-blue">${total.toFixed(2)}</span>
         </div>
