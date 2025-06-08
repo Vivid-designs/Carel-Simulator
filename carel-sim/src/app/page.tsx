@@ -34,9 +34,11 @@ export default function Home() {
     if (!file) return;
     setIsProcessing(true);
     try {
-      const { data: { text } } = await Tesseract.recognize(file, 'eng');
+      const { data: { text } } = await Tesseract.recognize(file, 'eng', { logger: m => console.log(m) });
+      console.log("Raw OCR Text:", text); // Debug: Log raw text
       setOcrText(text);
       const { items: parsedItems, total } = parseBillText(text);
+      console.log("Parsed Items:", parsedItems, "Parsed Total:", total); // Debug: Log parsed results
       setItems(parsedItems);
       setExtractedTotal(total);
     } catch (error) {
@@ -49,21 +51,35 @@ export default function Home() {
 
   // Parse OCR text to extract items and total amount
   const parseBillText = (text: string) => {
-    const items = [];
-    let total = null;
+    const items: { name: string; price: number }[] = [];
+    let total: number | null = null;
 
-    // Extract items
-    const itemRegex = /(.+?)\s+\$(\d+\.\d{2})/g;
+    // Extract items (exclude subtotal, discounts, etc.)
+    const itemRegex = /([A-Za-z\s]+?)\s*[R\$\s]*(\d+\.\d{2})/g;
     let match;
     while ((match = itemRegex.exec(text)) !== null) {
-      items.push({ name: match[1].trim(), price: parseFloat(match[2]) });
+      const name = match[1].trim();
+      if (!/Subtotal|Discounts|Tendered|Amount Due|ABount Dye/i.test(name)) {
+        items.push({ name, price: parseFloat(match[2]) });
+      }
     }
 
-    // Extract total amount (looks for "Total" or "Subtotal")
-    const totalRegex = /(?:Total|Subtotal)\s+\$(\d+\.\d{2})/i;
+    // Extract total amount (more flexible detection)
+    const totalRegex = /(?:Total|Subtotal|Amount Due|ABount Dye)\s*[R\$\s]*(\d+\.\d{2})/i;
     const totalMatch = text.match(totalRegex);
     if (totalMatch) {
       total = parseFloat(totalMatch[1]);
+    } else {
+      // Fallback: Look for any number that might be the total after misreads
+      const numberRegex = /\b(\d+\.\d{2})\b/g;
+      let numberMatch;
+      while ((numberMatch = numberRegex.exec(text)) !== null) {
+        const potentialTotal = parseFloat(numberMatch[1]);
+        if (potentialTotal > items.reduce((sum, item) => sum + item.price, 0)) {
+          total = potentialTotal;
+          break;
+        }
+      }
     }
 
     return { items, total };
@@ -90,12 +106,13 @@ export default function Home() {
     });
   };
 
-  // Calculate totals using the extracted total
+  // Calculate totals using the extracted total or fallback to item sum
   const calculateTotals = () => {
-    if (!extractedTotal || items.length === 0) return;
+    if (items.length === 0) return;
 
     const subtotal = items.reduce((sum, item) => sum + item.price, 0);
-    const taxAndTip = extractedTotal - subtotal;
+    const effectiveTotal = extractedTotal || subtotal; // Fallback to subtotal if no total detected
+    const taxAndTip = effectiveTotal - subtotal;
 
     const personTotals: Record<string, number> = {};
 
@@ -158,12 +175,13 @@ export default function Home() {
         {/* Image Preview and Controls */}
         {image && (
           <div className="w-full flex flex-col items-center space-y-4">
-            <div className="relative w-full h-64 rounded-lg overflow-hidden border border-white/30 shadow-md">
+            <div className="relative w-full rounded-lg overflow-hidden border border-white/30 shadow-md">
               <Image
                 src={image}
                 alt="Preview of uploaded bill"
-                fill
-                className="object-cover animate-fade-in"
+                width={400} // Adjustable width
+                height={600} // Adjustable height, can be dynamic
+                className="object-contain"
               />
               {isProcessing && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -181,14 +199,17 @@ export default function Home() {
               </button>
             )}
 
-            {/* Assignment UI */}
-            {items.length > 0 && (
+            {/* Assignment UI (render if items exist or processing is done) */}
+            {(items.length > 0 || ocrText) && (
               <div className="mt-6">
                 <h2 className="text-2xl font-bold text-white mb-4">Assign Items to People</h2>
 
                 {/* Display Extracted Total */}
                 {extractedTotal && (
                   <p className="text-white mb-4">Extracted Total: ${extractedTotal.toFixed(2)}</p>
+                )}
+                {!extractedTotal && ocrText && (
+                  <p className="text-yellow-400 mb-4">Could not detect total amount automatically.</p>
                 )}
 
                 {/* Add People */}
@@ -202,7 +223,7 @@ export default function Home() {
                   />
                   <button
                     onClick={addPerson}
-                    className="mt-2 w-full bg-blue-500 text-white py-2 rounded-full font-semibold hover:bg-blue-600"
+                    className="mt-2 w-full bg-blue-200 text-white py-2 rounded-full font-semibold hover:bg-blue-600"
                   >
                     Add Person
                   </button>
@@ -243,7 +264,7 @@ export default function Home() {
                 {/* Calculate Button */}
                 <button
                   onClick={calculateTotals}
-                  className="mt-4 Dungeon w-full bg-purple-500 text-white py-2 rounded-full font-semibold hover:bg-purple-600"
+                  className="mt-4 w-full bg-purple-500 text-white py-2 rounded-full font-semibold hover:bg-purple-600"
                 >
                   Calculate Totals
                 </button>
