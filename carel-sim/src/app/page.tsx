@@ -1,43 +1,23 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-
-// Defines the structure of a single item from the bill
-type BillItem = {
-  description: string;
-  quantity: number;
-  rate: number;
-  amount: number;
-};
+import { BillItem, BillDetails } from "../type";
 
 export default function Home() {
-  // --- EXISTING STATES (some are repurposed) ---
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [items, setItems] = useState<BillItem[]>([]);
-  const [billDetails, setBillDetails] = useState<Record<string, any> | null>(null);
+  const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
+  const [myItemsCount, setMyItemsCount] = useState<Record<number, number>>({});
+  const [tipPercentage, setTipPercentage] = useState<number>(10);
+  const [myTotal, setMyTotal] = useState<number | null>(null);
 
-  // --- NEW STATES for personal calculation ---
-  const [myItemsCount, setMyItemsCount] = useState<Record<number, number>>({}); // Tracks how many of each item you had. { itemIndex: count }
-  const [tipPercentage, setTipPercentage] = useState<number>(10); // Default tip at 10%
-  const [myTotal, setMyTotal] = useState<number | null>(null); // Your final calculated total
-
-  // --- REMOVED STATES (no longer needed for personal calculator) ---
-  // const [people, setPeople] = useState<string[]>([]);
-  // const [newPerson, setNewPerson] = useState("");
-  // const [selectedItems, setSelectedItems] = useState<Record<string, number[]>>({});
-  // const [currentPerson, setCurrentPerson] = useState<string | null>(null);
-  // const [calculatedTotals, setCalculatedTotals] = useState<Record<string, number> | null>(null);
-
-  // Handle image upload (with resets for new states)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;
     setFile(uploadedFile);
     setImage(URL.createObjectURL(uploadedFile));
-    
-    // Reset everything for the new bill
     setItems([]);
     setBillDetails(null);
     setMyItemsCount({});
@@ -45,7 +25,6 @@ export default function Home() {
     setTipPercentage(10);
   };
 
-  // Process the bill with Gemini API (remains mostly the same)
   const handleProcessBill = async () => {
     if (!file) return;
     setIsProcessing(true);
@@ -79,26 +58,19 @@ export default function Home() {
     }
   };
 
-  // --- NEW ---
-  // Handles changes to the item counter
   const handleMyItemCountChange = (itemIndex: number, change: number) => {
-    setMyTotal(null); // Reset total when items change
+    setMyTotal(null);
     setMyItemsCount(prev => {
       const currentCount = prev[itemIndex] || 0;
       const newCount = currentCount + change;
       const itemQuantityOnBill = items[itemIndex]?.quantity || 1;
-
-      // Prevent going below 0 or above the quantity on the bill
       if (newCount < 0 || newCount > itemQuantityOnBill) {
         return prev;
       }
-      
       return { ...prev, [itemIndex]: newCount };
     });
   };
 
-  // --- NEW ---
-  // Calculates your personal total based on selected items and tip
   const calculateMyShare = () => {
     const mySubtotal = Object.entries(myItemsCount).reduce((total, [itemIndexStr, count]) => {
       const itemIndex = parseInt(itemIndexStr, 10);
@@ -124,7 +96,6 @@ export default function Home() {
           Snap a bill, split the cost—because life&apos;s too short for math drama.
         </p>
 
-        {/* --- Upload and Image Preview Section (Unchanged) --- */}
         {!image ? (
           <label htmlFor="bill-upload" className="w-full flex items-center justify-center bg-[#FF6F61] text-gray-900 text-lg font-semibold py-3 rounded-full cursor-pointer hover:scale-105 transform transition-transform duration-200">
             Snap Bill
@@ -136,11 +107,18 @@ export default function Home() {
               <Image src={image} alt="Preview of uploaded bill" width={400} height={600} className="object-contain" />
               {isProcessing && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="loader ease-linear rounded-full border-4 border-t-4 border-white w-12 h-12"></span></div>}
             </div>
+            {billDetails && (
+              <div className="mt-4 text-white">
+                <h2 className="text-xl font-bold">Bill Details</h2>
+                {billDetails.restaurant_name && <p>Restaurant: {billDetails.restaurant_name}</p>}
+                {billDetails.bill_no && <p>Bill No: {billDetails.bill_no}</p>}
+                {billDetails.date && <p>Date: {billDetails.date}</p>}
+              </div>
+            )}
             {!isProcessing && items.length === 0 && <button onClick={handleProcessBill} className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors">Process Bill</button>}
           </div>
         )}
 
-        {/* --- NEW: Interactive Item Selection UI --- */}
         {items.length > 0 && (
           <div className="mt-6 w-full">
             <h2 className="text-2xl font-bold text-white mb-4">Select Your Items</h2>
@@ -160,7 +138,6 @@ export default function Home() {
               ))}
             </div>
             
-            {/* --- NEW: Tipping Section --- */}
             <div className="mt-6">
               <h3 className="text-xl font-bold text-white mb-3">Add a Tip</h3>
               <div className="flex items-center space-x-2">
@@ -173,7 +150,7 @@ export default function Home() {
                     {tip}%
                   </button>
                 ))}
-                 <input
+                <input
                   type="number"
                   placeholder="Other"
                   onChange={(e) => setTipPercentage(Number(e.target.value))}
@@ -182,7 +159,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* --- NEW: Calculate Button and Result Display --- */}
             <button
               onClick={calculateMyShare}
               className="mt-6 w-full bg-purple-500 text-white py-3 rounded-full font-semibold hover:bg-purple-600 transition-colors text-lg"
@@ -203,7 +179,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* --- Footer & Styles (Unchanged) --- */}
       <p className="mt-10 text-black text-sm">Powered by AI ✨</p>
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
