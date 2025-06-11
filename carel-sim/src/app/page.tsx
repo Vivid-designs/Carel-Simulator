@@ -110,9 +110,9 @@ export default function Home() {
             {billDetails && (
               <div className="mt-4 text-white">
                 <h2 className="text-xl font-bold">Bill Details</h2>
-                {billDetails.restaurant_name && <p>Restaurant: {billDetails.restaurant_name}</p>}
-                {billDetails.bill_no && <p>Bill No: {billDetails.bill_no}</p>}
-                {billDetails.date && <p>Date: {billDetails.date}</p>}
+                {billDetails.restaurant_name && <p>Restaurant: {String(billDetails.restaurant_name)}</p>}
+                {billDetails.bill_no && <p>Bill No: {String(billDetails.bill_no)}</p>}
+                {billDetails.date && <p>Date: {String(billDetails.date)}</p>}
               </div>
             )}
             {!isProcessing && items.length === 0 && <button onClick={handleProcessBill} className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors">Process Bill</button>}

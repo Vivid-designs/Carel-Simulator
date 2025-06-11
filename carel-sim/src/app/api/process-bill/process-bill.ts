@@ -29,7 +29,7 @@ type BillData = {
   central_gst_at_2_5_percent?: number;
   round_off?: number;
   net_amount?: number;
-  [key: string]: any; // Allow other fields like restaurant_name, bill_no, etc.
+  [key: string]: unknown; // Allow other fields like restaurant_name, bill_no, etc.
 };
 
 export default async function handler(
