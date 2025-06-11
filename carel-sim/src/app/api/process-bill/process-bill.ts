@@ -12,12 +12,14 @@ if (!API_KEY) {
 const genAI = new GoogleGenerativeAI(API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" }); // Use gemini-pro-vision for image input
 
-type BillItem = {
+export type BillItem = {
   description: string;
   quantity: number;
   rate: number;
   amount: number;
 };
+
+export type BillDetails = BillData; // If you want to export BillData as BillDetails
 
 type BillData = {
   items: BillItem[];
@@ -96,7 +98,7 @@ export default async function handler(
       },
     ];
 
-    const result = await model.generateContent({ contents: [{ parts }] });
+    const result = await model.generateContent( parts);
     const response = result.response;
     const text = response.text();
 

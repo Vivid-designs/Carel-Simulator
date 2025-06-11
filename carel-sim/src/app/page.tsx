@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { BillItem, BillDetails } from "../type";
+import { BillItem, BillDetails } from "../app/api/process-bill/process-bill";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
