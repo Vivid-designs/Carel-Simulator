@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { BillItem, BillDetails } from "../app/api/process-bill/process-bill";
+import { BillItem, BillDetails } from "../app/api/process-bill/route";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -12,35 +12,60 @@ export default function Home() {
   const [tipPercentage, setTipPercentage] = useState<number>(10);
   const [myTotal, setMyTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showItems, setShowItems] = useState(false); // New state to toggle item selection UI
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showItems, setShowItems] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;
     setFile(uploadedFile);
     setImage(URL.createObjectURL(uploadedFile));
-    setItems([]); // Reset items until "Process Bill" is clicked
+    setItems([]);
     setBillDetails(null);
     setMyItemsCount({});
     setMyTotal(null);
     setTipPercentage(10);
-    setError(null); // Clear any previous errors
-    setShowItems(false); // Reset to initial state
+    setError(null);
+    setShowItems(false);
   };
 
-  const handleProcessBill = () => {
-    // Simulate processing by setting hardcoded items and details
-    setItems([
-      { description: "Burger", quantity: 1, rate: 10.00, amount: 10.00 },
-      { description: "Fries", quantity: 1, rate: 5.00, amount: 5.00 },
-      { description: "Soda", quantity: 2, rate: 2.50, amount: 5.00 },
-    ]);
-    setBillDetails({
-      items: [],
-      restaurant_name: "Lario's Cafe",
-      date: "June 12, 2025",
-    });
-    setShowItems(true); // Show the item selection UI
+  const handleProcessBill = async () => {
+    if (!file) return;
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        console.log("Sending image data:", base64data.substring(0, 50) + "..."); // Log first 50 chars for debug
+        const response = await fetch('/api/process-bill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageData: base64data }),
+        });
+
+        console.log("Response status:", response.status); // Debug response
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Received data:", data); // Debug received data
+        if (data.items) {
+          setItems(data.items);
+        }
+        const { items, ...details } = data;
+        setBillDetails(details);
+        setShowItems(true);
+      };
+    } catch (error) {
+      console.error("API call failed:", error);
+      setError("Failed to process bill. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleMyItemCountChange = (itemIndex: number, change: number) => {
@@ -90,6 +115,7 @@ export default function Home() {
           <div className="w-full flex flex-col items-center space-y-4">
             <div className="relative w-full rounded-lg overflow-hidden border border-white/30 shadow-md">
               <Image src={image} alt="Preview of uploaded bill" width={400} height={600} className="object-contain" />
+              {isProcessing && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="loader ease-linear rounded-full border-4 border-t-4 border-white w-12 h-12"></span></div>}
             </div>
             {billDetails && (
               <div className="mt-4 text-white">
@@ -98,7 +124,7 @@ export default function Home() {
                 {billDetails.date && <p>Date: {String(billDetails.date)}</p>}
               </div>
             )}
-            {!showItems && (
+            {!showItems && !isProcessing && (
               <button
                 onClick={handleProcessBill}
                 className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors"
@@ -114,7 +140,7 @@ export default function Home() {
         {showItems && items.length > 0 && (
           <div className="mt-6 w-full">
             <h2 className="text-2xl font-bold text-white mb-4">Select Your Items</h2>
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
               {items.map((item, index) => (
                 <div key={index} className="flex items-center justify-between text-white bg-white/10 p-2 rounded-lg">
                   <div className="flex-grow">
@@ -177,11 +203,13 @@ export default function Home() {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
-          font-family: Arial, sans-serif; /* Fallback font to avoid Geist issues */
+          font-family: Arial, sans-serif;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 10px; }
+        .loader { border-color: rgba(255, 255, 255, 0.2); border-top-color: #fff; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
