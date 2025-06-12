@@ -6,7 +6,7 @@ import { BillItem, BillDetails } from "../app/api/process-bill/route";
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
-  const [items, setItems] = useState<BillItem[]>([]);
+  const [items, setItems] = useState<BillItem[]>([]); // Used in map below
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [myItemsCount, setMyItemsCount] = useState<Record<number, number>>({});
   const [tipPercentage, setTipPercentage] = useState<number>(10);
@@ -103,7 +103,7 @@ export default function Home() {
           Carel Sim
         </h1>
         <p className="text-center text-white mb-6 leading-relaxed">
-          Snap a bill, split the cost—because life's too short for math drama.
+          Snap a bill, split the cost—because life\'s too short for math drama.
         </p>
 
         {!image ? (
