@@ -6,94 +6,41 @@ import { BillItem, BillDetails } from "../app/api/process-bill/process-bill";
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [items, setItems] = useState<BillItem[]>([]);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [myItemsCount, setMyItemsCount] = useState<Record<number, number>>({});
   const [tipPercentage, setTipPercentage] = useState<number>(10);
   const [myTotal, setMyTotal] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null); // Added for user-facing errors
+  const [error, setError] = useState<string | null>(null);
+  const [showItems, setShowItems] = useState(false); // New state to toggle item selection UI
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;
     setFile(uploadedFile);
     setImage(URL.createObjectURL(uploadedFile));
-    setItems([]);
+    setItems([]); // Reset items until "Process Bill" is clicked
     setBillDetails(null);
     setMyItemsCount({});
     setMyTotal(null);
     setTipPercentage(10);
     setError(null); // Clear any previous errors
+    setShowItems(false); // Reset to initial state
   };
 
-  const handleProcessBill = async () => {
-    if (!file) return;
-    setIsProcessing(true);
-    setError(null); // Clear previous errors
-
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = async () => {
-        const base64data = reader.result as string;
-        const response = await fetch('/api/process-bill', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageData: base64data }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (data.items) {
-          setItems(data.items);
-        }
-        const handleProcessBill = async () => {
-  if (!file) return;
-  setIsProcessing(true);
-
-  try {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onloadend = async () => {
-      const base64data = reader.result as string;
-      const response = await fetch('/api/process-bill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageData: base64data }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.items) {
-        setItems(data.items);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { items, ...details } = data;
-      setBillDetails(details);
-    };
-  } catch (error) {
-    console.error("API call failed:", error);
-  } finally {
-    setIsProcessing(false);
-  }
-};
-        const { items, ...details } = data;
-        setBillDetails(details);
-      };
-    } catch (error) {
-      console.error("API call failed:", error);
-      setError("Failed to process bill. Please try again."); // User-facing error
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleProcessBill = () => {
+    // Simulate processing by setting hardcoded items and details
+    setItems([
+      { description: "Burger", quantity: 1, rate: 10.00, amount: 10.00 },
+      { description: "Fries", quantity: 1, rate: 5.00, amount: 5.00 },
+      { description: "Soda", quantity: 2, rate: 2.50, amount: 5.00 },
+    ]);
+    setBillDetails({
+      items: [],
+      restaurant_name: "Lario's Cafe",
+      date: "June 12, 2025",
+    });
+    setShowItems(true); // Show the item selection UI
   };
 
   const handleMyItemCountChange = (itemIndex: number, change: number) => {
@@ -127,7 +74,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-blue-300 flex flex-col items-center justify-center px-4 py-8">
       <div className="relative bg-white/5 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-black max-w-md w-full">
-        <h1 className="text-4xl font-extrabold text-white text-center mb-2 tracking-wide">
+        <h1 className="text-4xl font-bold text-white text-center mb-2 tracking-wide">
           Carel Sim
         </h1>
         <p className="text-center text-white mb-6 leading-relaxed">
@@ -143,26 +90,31 @@ export default function Home() {
           <div className="w-full flex flex-col items-center space-y-4">
             <div className="relative w-full rounded-lg overflow-hidden border border-white/30 shadow-md">
               <Image src={image} alt="Preview of uploaded bill" width={400} height={600} className="object-contain" />
-              {isProcessing && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="loader ease-linear rounded-full border-4 border-t-4 border-white w-12 h-12"></span></div>}
             </div>
             {billDetails && (
               <div className="mt-4 text-white">
                 <h2 className="text-xl font-bold">Bill Details</h2>
                 {billDetails.restaurant_name && <p>Restaurant: {String(billDetails.restaurant_name)}</p>}
-                {billDetails.bill_no && <p>Bill No: {String(billDetails.bill_no)}</p>}
                 {billDetails.date && <p>Date: {String(billDetails.date)}</p>}
               </div>
             )}
-            {!isProcessing && items.length === 0 && <button onClick={handleProcessBill} className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors">Process Bill</button>}
+            {!showItems && (
+              <button
+                onClick={handleProcessBill}
+                className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors"
+              >
+                Process Bill
+              </button>
+            )}
           </div>
         )}
 
-        {error && <p className="text-red-500 mt-4">{error}</p>} {/* User-facing error message */}
+        {error && <p className="text-red-500 mt-4">{error}</p>}
 
-        {items.length > 0 && (
+        {showItems && items.length > 0 && (
           <div className="mt-6 w-full">
             <h2 className="text-2xl font-bold text-white mb-4">Select Your Items</h2>
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
               {items.map((item, index) => (
                 <div key={index} className="flex items-center justify-between text-white bg-white/10 p-2 rounded-lg">
                   <div className="flex-grow">
@@ -209,7 +161,7 @@ export default function Home() {
             {myTotal !== null && (
               <div className="mt-6 p-4 bg-green-500/80 rounded-lg text-center">
                 <h2 className="text-lg font-semibold text-black">You Owe:</h2>
-                <p className="text-4xl font-extrabold text-white">
+                <p className="text-4xl font-bold text-white">
                   R{myTotal.toFixed(2)}
                 </p>
                 <p className="text-black text-sm">(Subtotal: R{(myTotal / (1 + tipPercentage/100)).toFixed(2)} + Tip: R{(myTotal - (myTotal / (1 + tipPercentage/100))).toFixed(2)})</p>
@@ -221,11 +173,15 @@ export default function Home() {
 
       <p className="mt-10 text-black text-sm">Powered by AI ✨</p>
       <style jsx global>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: Arial, sans-serif; /* Fallback font to avoid Geist issues */
+        }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 10px; }
-        .loader { border-color: rgba(255, 255, 255, 0.2); border-top-color: #fff; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
