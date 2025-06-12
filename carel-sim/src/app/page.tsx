@@ -7,11 +7,13 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [items, setItems] = useState<BillItem[]>([]);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [myItemsCount, setMyItemsCount] = useState<Record<number, number>>({});
   const [tipPercentage, setTipPercentage] = useState<number>(10);
   const [myTotal, setMyTotal] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null); // Added for user-facing errors
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
@@ -23,11 +25,13 @@ export default function Home() {
     setMyItemsCount({});
     setMyTotal(null);
     setTipPercentage(10);
+    setError(null); // Clear any previous errors
   };
 
   const handleProcessBill = async () => {
     if (!file) return;
     setIsProcessing(true);
+    setError(null); // Clear previous errors
 
     try {
       const reader = new FileReader();
@@ -48,11 +52,45 @@ export default function Home() {
         if (data.items) {
           setItems(data.items);
         }
+        const handleProcessBill = async () => {
+  if (!file) return;
+  setIsProcessing(true);
+
+  try {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+      const base64data = reader.result as string;
+      const response = await fetch('/api/process-bill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData: base64data }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.items) {
+        setItems(data.items);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { items, ...details } = data;
+      setBillDetails(details);
+    };
+  } catch (error) {
+    console.error("API call failed:", error);
+  } finally {
+    setIsProcessing(false);
+  }
+};
         const { items, ...details } = data;
         setBillDetails(details);
       };
     } catch (error) {
       console.error("API call failed:", error);
+      setError("Failed to process bill. Please try again."); // User-facing error
     } finally {
       setIsProcessing(false);
     }
@@ -81,8 +119,8 @@ export default function Home() {
       return total;
     }, 0);
 
-    const tipAmount = mySubtotal * (tipPercentage / 100);
-    const finalTotal = mySubtotal + tipAmount;
+    const tipAmount = Number((mySubtotal * (tipPercentage / 100)).toFixed(2));
+    const finalTotal = Number((mySubtotal + tipAmount).toFixed(2));
     setMyTotal(finalTotal);
   };
 
@@ -93,7 +131,7 @@ export default function Home() {
           Carel Sim
         </h1>
         <p className="text-center text-white mb-6 leading-relaxed">
-          Snap a bill, split the cost—because life&apos;s too short for math drama.
+          Snap a bill, split the cost—because life's too short for math drama.
         </p>
 
         {!image ? (
@@ -118,6 +156,8 @@ export default function Home() {
             {!isProcessing && items.length === 0 && <button onClick={handleProcessBill} className="mt-4 w-full bg-green-500 text-white py-2 rounded-full font-semibold hover:bg-green-600 transition-colors">Process Bill</button>}
           </div>
         )}
+
+        {error && <p className="text-red-500 mt-4">{error}</p>} {/* User-facing error message */}
 
         {items.length > 0 && (
           <div className="mt-6 w-full">
