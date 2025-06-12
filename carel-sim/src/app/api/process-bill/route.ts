@@ -18,16 +18,21 @@ export type BillItem = {
   amount: number;
 };
 
-export type BillData = {
-  items: BillItem[];
+export type BillDetails = {
   total_amount?: number;
   serc_at_10_percent?: number;
   state_gst_at_2_5_percent?: number;
   central_gst_at_2_5_percent?: number;
   round_off?: number;
   net_amount?: number;
+  restaurant_name?: string;
+  date?: string;
   [key: string]: unknown;
 };
+
+export type BillData = {
+  items: BillItem[];
+} & BillDetails; // BillData extends BillDetails with the items array
 
 export async function POST(req: NextRequest) {
   const { imageData } = await req.json();
@@ -72,9 +77,9 @@ export async function POST(req: NextRequest) {
     const text = response.text().trim(); // Trim whitespace/newlines
     console.log("Gemini Raw Response Text (trimmed):", text);
 
-    let jsonStart = text.indexOf("{");
-    let jsonEnd = text.lastIndexOf("}") + 1;
-    let jsonString = text.substring(jsonStart, jsonEnd); // Extract raw JSON if wrapped
+    const jsonStart = text.indexOf("{"); // Changed to const
+    const jsonEnd = text.lastIndexOf("}") + 1; // Changed to const
+    const jsonString = text.substring(jsonStart, jsonEnd); // Changed to const
 
     let parsedData: BillData;
     try {
