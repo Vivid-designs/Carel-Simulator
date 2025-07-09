@@ -1,9 +1,13 @@
 "use client";
+// Import necessary libraries and components
 import { useState } from "react";
 import Image from "next/image";
 import { BillItem, BillDetails } from "../app/api/process-bill/route";
 
+//main component
 export default function Home() {
+
+  //State variables 
   const [items, setItems] = useState<BillItem[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
@@ -14,7 +18,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showItems, setShowItems] = useState(false);
-
+  const [step, setStep] = useState(0);
+  
+//Functions to handle the image upload, processing of the bill and item selection
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;
@@ -29,6 +35,7 @@ export default function Home() {
     setShowItems(false);
   };
 
+  //function to process the bill image
   const handleProcessBill = async () => {
     if (!file) return;
     setIsProcessing(true);
@@ -61,6 +68,7 @@ export default function Home() {
     }
   };
 
+  //function to handle item count changes
   const handleMyItemCountChange = (idx: number, change: number) => {
     setMyTotal(null);
     setMyItemsCount(prev => {
@@ -72,6 +80,7 @@ export default function Home() {
     });
   };
 
+  //functions to calculate the user's share of the bill 
   const calculateMyShare = () => {
     const subtotal = Object.entries(myItemsCount).reduce((sum, [i, c]) => {
       const item = items[+i];
@@ -81,9 +90,11 @@ export default function Home() {
     setMyTotal(+(subtotal + tipAmt).toFixed(2));
   };
 
+  //Render the component
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-4 shadow-xl w-full max-w-sm sm:max-w-md md:max-w-lg">
+    //Main contianer
+    <div className="">
+      <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-4 shadow-xl max-w-sm w-full mx-auto flex flex-col items-center">
         <h1 className="text-2xl font-bold text-white text-center mb-2">Carel Sim</h1>
         <p className="text-center text-white/80 mb-4 text-sm">Snap a bill, split the cost—because life’s too short for math drama.</p>
 

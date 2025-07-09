@@ -1,7 +1,31 @@
-/* globals.css */
-* {
+body {
+  flex-direction: column;
+  background: #1b1b1b;
+  min-height: 100vh;
   margin: 0;
-  padding: 0;
-  box-sizing: border-box;
   font-family: Arial, sans-serif;
+  justify-content: center;
+}
+
+.centered-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.button-primary {
+  background: #2563eb;
+  color: #fff;
+  padding: 12px 32px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 2rem;
+}
+.button-primary:hover {
+  background: #1d4ed8;
 }
