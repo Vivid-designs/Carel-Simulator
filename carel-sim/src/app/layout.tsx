@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import "./styles/globals.css";
 
 export const metadata: Metadata = {
   title: "Carel Sim",
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" >
       <body className="antialiased">
         {children}
       </body>
